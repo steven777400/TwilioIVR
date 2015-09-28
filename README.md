@@ -14,3 +14,16 @@ or as a FastCGI process on a shared server.
 See examples folder.
 
 Note: The Call data and Twilio methods still need to be fleshed out.  They exist in a bare bones or proof of concept form.
+
+```hs
+simple :: Call -> TwilioIVRCoroutine ()
+simple call = do
+    say $ "hello to you " ++ (intersperse ' ' $ call ^. Twilio.IVR.from)
+    num <- gather "Please enter your five digit sign in code" (numDigits .~ 5)    
+    let ok = num == "12345"
+    say "Please wait"
+    say "While we process your request"
+    -- We can do some IO, like if you need to read from a database
+    lift $ print ok
+    if ok then say "You've signed in correctly!" else say "We were unable to verify your account"
+```    
