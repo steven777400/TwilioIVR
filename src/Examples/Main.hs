@@ -4,6 +4,7 @@ module Main where
 import Control.Applicative
 
 import qualified Examples.EX1 as EX1
+import qualified Examples.EX2 as EX2
 
 import qualified Data.TransientStore as TS
 
@@ -20,12 +21,14 @@ getTIVRSubRoute :: (Call -> TwilioIVRCoroutine ()) -> MyRoute -> TIVRSubRoute
 getTIVRSubRoute entry (MyRoute db) = TIVRSubRoute db entry
 
 example1Route = getTIVRSubRoute EX1.simple
+example2Route = getTIVRSubRoute EX2.account
 
 data MyRoute = MyRoute TIVRDB
 
 
 mkRoute "MyRoute" [parseRoutes|
-/ex1 Examples TIVRSubRoute example1Route
+/ex1 Example1 TIVRSubRoute example1Route
+/ex2 Example2 TIVRSubRoute example2Route
 |]
 
 
