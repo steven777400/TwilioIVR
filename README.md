@@ -12,3 +12,5 @@ The module requires wai for web services, but can work with any wai handler, suc
 or as a FastCGI process on a shared server.
 
 See examples folder.
+
+Note: The Call data and Twilio methods still need to be fleshed out.  They exist in a bare bones or proof of concept form.
