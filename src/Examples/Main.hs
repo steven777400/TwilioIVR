@@ -1,6 +1,8 @@
 {-# LANGUAGE OverloadedStrings, TemplateHaskell, QuasiQuotes, TypeFamilies, MultiParamTypeClasses #-}
 module Main where
 
+import Control.Applicative
+
 import qualified Examples.EX1 as EX1
 
 import qualified Data.TransientStore as TS
@@ -8,6 +10,7 @@ import qualified Data.TransientStore as TS
 import Network.Wai
 import qualified Network.Wai.Handler.Warp as Warp (run)
 import qualified Network.Wai.Handler.FastCGI as FCGI (run)
+import Network.Wai.Middleware.Approot
 import Network.Wai.Middleware.Routes
 import Network.Wai.Twilio.IVR
 
@@ -38,4 +41,4 @@ dev = do
     prepareApp >>= Warp.run 8080 
     
 main :: IO ()
-main = prepareApp >>= FCGI.run   
+main = hardcoded "/test/ivr-examples.fcgi" <$> prepareApp >>= FCGI.run   

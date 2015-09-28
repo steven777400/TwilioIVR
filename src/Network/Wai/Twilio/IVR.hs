@@ -16,12 +16,14 @@ import Control.Monad.Coroutine
 import qualified Control.Monad.Coroutine.SuspensionFunctors as SF
 import Control.Lens.Setter
 
+import qualified Data.ByteString.Char8 as BSC
 import qualified Data.Text as TX
 import Data.TransientStore
 import Data.UUID
 
 import Network.HTTP.Types
 import Network.Wai
+import Network.Wai.Middleware.Approot
 import Network.Wai.Middleware.Routes
 
 import Text.XML.Light
@@ -75,11 +77,15 @@ executeTIVRStep db cont = do
                     -- so place it into the transient store and send the ID for resuming
                     newid <- liftIO $ insert db cont'
                     -- build the URL for the action
+                    rootUrl <- getApprootMay <$> request
                     routeUrl <- showRouteSub
                     let url = TX.unpack $ routeUrl (Continue newid)
+                    let url' = case rootUrl of
+                            Nothing -> url
+                            (Just root) -> BSC.unpack root ++ url
 
                     -- modify the interactive entry's action to point to the new url, and send
-                    return [renderTwiML $ Left ((action .~ url) iresp)] 
+                    return [renderTwiML $ Left ((action .~ url') iresp)] 
                     
                 (Right resp) -> do -- Non-interactive entry
                     -- recursively continue processing, acquiring further entries leading to either
