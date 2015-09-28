@@ -18,6 +18,8 @@ module Twilio.IVR (Response (..), IResponse, Call(..), TwilioIVRCoroutine,
     say, gather, hangup,     
     -- * Lens for gather
     message, numDigits, action,
+    -- * Lens for call
+    callSid, accountSid, Twilio.IVR.from,
     
     -- * Support functions used to generate TwiML, not expected to be called by the user
     renderTwiML, makeRootTwiML) where
@@ -27,6 +29,8 @@ import Control.Applicative
 import Control.Lens
 import Control.Lens.Setter
 import Control.Lens.TH
+
+import Control.Monad (void)
 
 import Control.Monad.Coroutine
 import qualified Control.Monad.Coroutine.SuspensionFunctors as SF
@@ -54,11 +58,11 @@ makeLenses ''Response
 -- | Information about the call
 data Call = 
     Call { 
-        callSid :: String,         -- ^ The unique Twilio SID        
-        accountSid :: String,      -- ^ Your account SID
-        from :: String }           -- ^ The phone number or identifier of the caller
+        _callSid :: String,         -- ^ The unique Twilio SID        
+        _accountSid :: String,      -- ^ Your account SID
+        _from :: String }           -- ^ The phone number or identifier of the caller
     deriving (Show)
-
+makeLenses ''Call
 
 -- | The main monadic type for IVR conversations
 type TwilioIVRCoroutine a = Coroutine (SF.Request (Either IResponse Response) String) IO a
@@ -66,8 +70,9 @@ type TwilioIVRCoroutine a = Coroutine (SF.Request (Either IResponse Response) St
 -- | Speak a message to the user
 say :: String -> TwilioIVRCoroutine ()
 say msg = 
-    (SF.request $ Right $ Say msg) >>   -- the "result" here is always the empty string, so discard it
-    return ()
+    void $ -- the "result" here is always the empty string, so discard it
+    SF.request $ Right $ Say msg  
+
 
 -- | Receive keypad entry from the user
 gather :: String                    -- ^ A message to 'say' inside the Gather command
@@ -80,7 +85,7 @@ gather msg lens = SF.request <$> Left <$> lens $ Gather msg 10 ""
 
 -- | Terminate the call
 hangup :: TwilioIVRCoroutine ()
-hangup = (SF.request $ Right Hangup) >> return ()
+hangup = void $ SF.request $ Right Hangup
 
 
 
