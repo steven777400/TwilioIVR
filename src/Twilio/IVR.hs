@@ -45,13 +45,14 @@ data IResponse =
         _message :: String,             
         _numDigits :: Int,              -- ^ Maximum number of digits to gather
         _action :: String}
+    deriving (Show, Eq)        
 makeLenses ''IResponse
 
 -- | A single non-interactive response entry, that does not stop for user input
 data Response =                 
     Say { _sayMessage :: String } |     
     Hangup                              
-    deriving (Show)
+    deriving (Show, Eq)
 makeLenses ''Response
 
 
@@ -79,9 +80,9 @@ gather :: String                    -- ^ A message to 'say' inside the Gather co
     -> (IResponse -> IResponse)     -- ^ A lens to change gather settings.
                                     -- Lens available are:
                                     --
-                                    -- [@numDigits ~. (n :: Int)@]  Sets the maximum number of digits to listen for                                    
+                                    -- [@numDigits .~ (n :: Int)@]  Sets the maximum number of digits to listen for                                    
     -> TwilioIVRCoroutine String    -- ^ Bind to the string to receive the caller's keypad entry
-gather msg lens = SF.request <$> Left <$> lens $ Gather msg 10 ""
+gather msg lens = SF.request <$> Left <$> lens $ Gather msg 5 ""
 
 -- | Terminate the call
 hangup :: TwilioIVRCoroutine ()
