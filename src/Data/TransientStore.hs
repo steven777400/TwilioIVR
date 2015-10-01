@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-|
 Module      : Data.TransientStore
 Description : An IO-bound store of values, referenced by a serializable identifier, which expire automatically after a fixed time
@@ -55,7 +56,7 @@ peek tstore id = do
 insert :: TransientStore a          -- ^ The transient store to insert into
     -> a                            -- ^ The value to insert
     -> IO UUID                      -- ^ A unique identifier representing the value
-insert tstore value = do
+insert tstore !value = do
     now <- getCurrentTime    
     newid <- randomIO :: IO UUID    
     atomicModifyIORef' tstore (\istore -> let cleanedIStore = cleanIfNeeded now istore in 
