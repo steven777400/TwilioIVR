@@ -1,6 +1,7 @@
 module Twilio.IVRSpec where
 
 import Test.Hspec
+
 import Twilio.IVR
 
 
@@ -36,8 +37,22 @@ spec = do
             Left (Request res _) <- resume (gather "Test Message" (numDigits .~ 10))
             renderTwiML res `shouldBe` (Elem $ unode "Gather" (Elem $ unode "Say" "Test Message") &
                 add_attrs [
+                Attr (unqual "timeout") "5",
+                Attr (unqual "finishOnKey") "#",
                 Attr (unqual "numDigits") "10",
                 Attr (unqual "method") "POST",
                 Attr (unqual "action") "" ])
+            Left (Request res2 _) <- resume (gather "Test Message" (
+                (numDigits .~ 5) . 
+                (timeout .~ 10) .
+                (finishOnKey .~ Nothing)
+                ))
+            renderTwiML res2 `shouldBe` (Elem $ unode "Gather" (Elem $ unode "Say" "Test Message") &
+                add_attrs [
+                Attr (unqual "timeout") "10",
+                Attr (unqual "finishOnKey") "",
+                Attr (unqual "numDigits") "5",
+                Attr (unqual "method") "POST",
+                Attr (unqual "action") "" ])                
             
             

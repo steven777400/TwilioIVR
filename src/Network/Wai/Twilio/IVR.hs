@@ -27,6 +27,7 @@ import Network.Wai.Middleware.Approot
 import Network.Wai.Middleware.Routes
 
 import Text.XML.Light
+import Twilio.Key
 import Twilio.IVR
 
 import Web.PathPieces
@@ -35,7 +36,7 @@ instance PathPiece UUID where
     fromPathPiece = fromString.TX.unpack
     toPathPiece = TX.pack.toString
 
-type TIVRDB = TransientStore (String -> TwilioIVRCoroutine ())
+type TIVRDB = TransientStore ([Key] -> TwilioIVRCoroutine ())
 
 -- | The wai subroute definition. Definer must provide a cross-request stateful 'TIVRDB' and the 'root' entry-point for incoming IVR calls.
 data TIVRSubRoute = TIVRSubRoute {
@@ -91,8 +92,8 @@ executeTIVRStep db cont = do
                     -- recursively continue processing, acquiring further entries leading to either
                     -- termination or another interactive entry
                     reslt <- executeTIVRStep db 
-                        (cont' "") -- Note: the continuation requires a parameter, but since it's non-interactive, we provide no digits. 
-                                   -- This will be forcably ignored anyways by the wrappers
+                        (cont' undefined)   -- Note: the continuation requires a parameter, but since it's non-interactive, we provide no digits. 
+                                            -- This will be forcably ignored anyways by the wrappers
                     return $ renderTwiML eresp:reslt                
                     
         (Right final) -> return [renderTwiML $ Right Hangup] -- All processing done, make sure system hangs up
@@ -114,12 +115,12 @@ postNew = runHandlerM $ do
 
 postContinue :: RenderRoute master => UUID -> HandlerS TIVRSubRoute master
 postContinue id = runHandlerM $ do
-  TIVRSubRoute db _  <- sub
-  -- we're not going to re-provide the call params (although they should all be there)
-  -- instead, we're only going to go for the digits, which is what might have changed
-  query <- queryLookup <$> parseQueryText <$> rawBody           
-  -- using the id given, extract the coroutine out of the transient store
-  (Just cont) <- liftIO $ pop db id 
-  -- provide the digits and continue execution
-  out <- executeTIVRStep db $ cont (query "Digits")
-  asXml $ makeRootTwiML out
+    TIVRSubRoute db _  <- sub
+    -- we're not going to re-provide the call params (although they should all be there)
+    -- instead, we're only going to go for the digits, which is what might have changed
+    query <- queryLookup <$> parseQueryText <$> rawBody           
+    -- using the id given, extract the coroutine out of the transient store
+    (Just cont) <- liftIO $ pop db id 
+    -- provide the digits and continue execution
+    out <- executeTIVRStep db $ cont (read $ query "Digits")
+    asXml $ makeRootTwiML out

@@ -17,7 +17,7 @@ module Twilio.IVR (Response (..), IResponse, Call(..), TwilioIVRCoroutine,
     -- * Monadic functions used for controlling IVR
     say, gather, hangup,     
     -- * Lens for gather
-    message, numDigits, action,
+    message, timeout, finishOnKey, numDigits, action,
     -- * Lens for call
     callSid, accountSid, Twilio.IVR.from,
     
@@ -37,14 +37,16 @@ import qualified Control.Monad.Coroutine.SuspensionFunctors as SF
 import Control.Monad.Trans.Class
 
 import Text.XML.Light
-
+import Twilio.Key
 
 -- | A single interactive response entry, that expects the user the give input
 data IResponse =         
     Gather { 
-        _message :: String,             
-        _numDigits :: Int,              -- ^ Maximum number of digits to gather
-        _action :: String}
+        _message        :: String,             
+        _timeout        :: Int,             -- ^ Timeout, in seconds, to wait between each digit
+        _finishOnKey    :: Maybe Key,       -- ^ Optionally, the key to immediately terminate gathering
+        _numDigits      :: Int,             -- ^ Maximum number of digits to gather                
+        _action         :: String}
     deriving (Show, Eq)        
 makeLenses ''IResponse
 
@@ -66,7 +68,7 @@ data Call =
 makeLenses ''Call
 
 -- | The main monadic type for IVR conversations
-type TwilioIVRCoroutine a = Coroutine (SF.Request (Either IResponse Response) String) IO a
+type TwilioIVRCoroutine a = Coroutine (SF.Request (Either IResponse Response) [Key]) IO a
 
 -- | Speak a message to the user
 say :: String -> TwilioIVRCoroutine ()
@@ -80,9 +82,11 @@ gather :: String                    -- ^ A message to 'say' inside the Gather co
     -> (IResponse -> IResponse)     -- ^ A lens to change gather settings.
                                     -- Lens available are:
                                     --
-                                    -- [@numDigits .~ (n :: Int)@]  Sets the maximum number of digits to listen for                                    
-    -> TwilioIVRCoroutine String    -- ^ Bind to the string to receive the caller's keypad entry
-gather msg lens = SF.request <$> Left <$> lens $ Gather msg 5 ""
+                                    -- [@timeout        .~ (n :: Int)@]  Sets the timeout, in seconds, to wait between each digit
+                                    -- [@finishOnKey    .~ (k :: Maybe Key)@]  Optionally, sets the key to immediately terminate gathering
+                                    -- [@numDigits      .~ (n :: Int)@]  Sets the maximum number of digits to listen for                                    
+    -> TwilioIVRCoroutine [Key]     -- ^ Bind to the keys to receive the caller's keypad entry
+gather msg lens = SF.request <$> Left <$> lens $ Gather msg 5 (Just KPound) 50 ""
 
 -- | Terminate the call
 hangup :: TwilioIVRCoroutine ()
@@ -96,9 +100,11 @@ string str = Text $ CData CDataText str Nothing
 
 
 renderTwiML :: Either IResponse Response -> Content
-renderTwiML (Left (Gather msg digits action)) = Elem $ unode "Gather" (renderTwiML (Right $ Say msg)) &
+renderTwiML (Left (Gather msg timeout finishOnKey numDigits action)) = Elem $ unode "Gather" (renderTwiML (Right $ Say msg)) &
     add_attrs [
-        Attr (unqual "numDigits") (show digits),
+        Attr (unqual "timeout") (show timeout),
+        Attr (unqual "finishOnKey") (maybe "" show finishOnKey),
+        Attr (unqual "numDigits") (show numDigits),
         Attr (unqual "method") "POST",
         Attr (unqual "action") action ]
 renderTwiML (Right (Say msg)) = Elem $ unode "Say" (string msg) 
