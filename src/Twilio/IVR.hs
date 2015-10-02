@@ -12,7 +12,7 @@ stage in a conversation. Tracking state during a call is also problematic for th
 This module introduces a coroutine-based monad for Twilio IVR which makes extended
 interactions and state maintenance as seamless as console I/O.
 -}
-module Twilio.IVR (Response (..), IResponse, Call(..), TwilioIVRCoroutine, 
+module Twilio.IVR (Response (..), IResponse, Geo(..), Call(..), TwilioIVRCoroutine, 
     
     -- * Monadic functions used for controlling IVR
     say, gather, hangup,     
@@ -59,13 +59,27 @@ data Response =
     deriving (Show, Eq)
 makeLenses ''Response
 
+-- | Information about location
+data Geo =
+    Geo {
+        _city :: String,
+        _state :: String,
+        _zip :: String,
+        _country :: String
+    }
+    deriving (Show)
 
 -- | Information about the call
 data Call = 
     Call { 
         _callSid :: String,         -- ^ The unique Twilio SID        
         _accountSid :: String,      -- ^ Your account SID
-        _from :: String }           -- ^ The phone number or identifier of the caller
+        _from :: String,            -- ^ The phone number or identifier of the caller
+        _to :: String,              -- ^ The phone number of the called party
+        _forwardedFrom :: String,   -- ^ Optionally, information about a forwarded call
+        _callerName :: String,      -- ^ If requested, the looked up name of the caller
+        _fromLoc :: Geo,            -- ^ If available, the looked up origin of the call (from)
+        _toLoc :: Geo }             -- ^ If available, the looked up receipt location (to)
     deriving (Show)
 makeLenses ''Call
 

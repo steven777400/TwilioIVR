@@ -99,14 +99,18 @@ executeTIVRStep db cont = do
         (Right final) -> return [renderTwiML $ Right Hangup] -- All processing done, make sure system hangs up
 
 
-    
+
+queryGeo :: (TX.Text -> String) -> TX.Text -> Geo
+queryGeo query prefix = Geo (q "City") (q "State") (q "Zip") (q "Country")
+    where q x = query (TX.append prefix x)
 
 postNew :: RenderRoute master => HandlerS TIVRSubRoute master
 postNew = runHandlerM $ do
     TIVRSubRoute db beginTCR <- sub    
     -- for a new request, load the call params out of the body
     query <- queryLookup <$> parseQueryText <$> rawBody        
-    let call = Call (query "CallSid") (query "AccountSid") (query "From")
+    let qGeo = queryGeo query
+    let call = Call (query "CallSid") (query "AccountSid") (query "From") (query "To") (query "ForwardedFrom") (query "CallerName") (qGeo "From") (qGeo "To")
     -- execute the first step using the specified entry point
     out <- executeTIVRStep db (beginTCR call)        
     asXml $ makeRootTwiML out
