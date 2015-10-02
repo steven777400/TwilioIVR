@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, RecordWildCards #-}
 {-|
 Module      : Twilio.IVR
 Description : A coroutine for interactive monadic Twilio IVR
@@ -50,6 +50,8 @@ data IResponse =
     deriving (Show, Eq)        
 makeLenses ''IResponse
 
+defaultGather = Gather "" 5 (Just KPound) 50 ""
+
 -- | A single non-interactive response entry, that does not stop for user input
 data Response =                 
     Say { _sayMessage :: String } |     
@@ -86,7 +88,7 @@ gather :: String                    -- ^ A message to 'say' inside the Gather co
                                     -- [@finishOnKey    .~ (k :: Maybe Key)@]  Optionally, sets the key to immediately terminate gathering
                                     -- [@numDigits      .~ (n :: Int)@]  Sets the maximum number of digits to listen for                                    
     -> TwilioIVRCoroutine [Key]     -- ^ Bind to the keys to receive the caller's keypad entry
-gather msg lens = SF.request <$> Left <$> lens $ Gather msg 5 (Just KPound) 50 ""
+gather msg lens = SF.request <$> Left <$> lens $ (message .~ msg ) defaultGather
 
 -- | Terminate the call
 hangup :: TwilioIVRCoroutine ()
@@ -100,13 +102,13 @@ string str = Text $ CData CDataText str Nothing
 
 
 renderTwiML :: Either IResponse Response -> Content
-renderTwiML (Left (Gather msg timeout finishOnKey numDigits action)) = Elem $ unode "Gather" (renderTwiML (Right $ Say msg)) &
+renderTwiML (Left (Gather{..})) = Elem $ unode "Gather" (renderTwiML (Right $ Say _message)) &
     add_attrs [
-        Attr (unqual "timeout") (show timeout),
-        Attr (unqual "finishOnKey") (maybe "" show finishOnKey),
-        Attr (unqual "numDigits") (show numDigits),
+        Attr (unqual "timeout") (show _timeout),
+        Attr (unqual "finishOnKey") (maybe "" show _finishOnKey),
+        Attr (unqual "numDigits") (show _numDigits),
         Attr (unqual "method") "POST",
-        Attr (unqual "action") action ]
+        Attr (unqual "action") _action ]
 renderTwiML (Right (Say msg)) = Elem $ unode "Say" (string msg) 
 renderTwiML (Right Hangup) = Elem $ unode "Hangup" ()
 

@@ -39,7 +39,7 @@ instance Show Key where
     show K9     = "9"
     show KStar  = "*"
     show KPound = "#"
-    showList kx xs = (concatMap show kx)++xs
+    showList kx xs = concatMap show kx++xs
 
 
 readKeyList :: String -> [Key]  
