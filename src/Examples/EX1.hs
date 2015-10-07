@@ -14,7 +14,7 @@ simple :: Call -> TwilioIVRCoroutine ()
 simple call = do
     say $ "hello to you " ++ (intersperse ' ' $ call ^. Twilio.IVR.from)
     num <- gather "Please enter your five digit sign in code" (numDigits .~ 5)    
-    let ok = num == "12345"
+    let ok = num == (read "12345")
     say "Please wait"
     say "While we process your request"
     -- We can do some IO, like if you need to read from a database

@@ -28,7 +28,7 @@ users = [
 signin :: TwilioIVRCoroutine User
 signin = do
     eid <- gather "Please enter your account id" (numDigits .~ 4)
-    case filter (\u -> uid u == eid) users of
+    case filter (\u -> read (uid u) == eid) users of
         [] -> do
             say "Sorry, we don't recognize that id, please try again."
             signin

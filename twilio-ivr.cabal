@@ -33,7 +33,7 @@ cabal-version:       >=1.10
 
 library
   -- Modules exported by the library.
-  exposed-modules:     Twilio.IVR, Data.TransientStore, Network.Wai.Twilio.IVR
+  exposed-modules:     Twilio.IVR, Twilio.Key, Data.TransientStore, Network.Wai.Twilio.IVR
   
   -- Modules included in this library but not exported.
   -- other-modules:       
