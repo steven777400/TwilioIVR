@@ -5,6 +5,7 @@ import Control.Applicative
 
 import qualified Examples.EX1 as EX1
 import qualified Examples.EX2 as EX2
+import qualified Examples.EX3 as EX3
 
 import qualified Data.TransientStore as TS
 
@@ -22,6 +23,7 @@ getTIVRSubRoute entry (MyRoute db) = TIVRSubRoute db entry
 
 example1Route = getTIVRSubRoute EX1.simple
 example2Route = getTIVRSubRoute EX2.account
+example3Route = getTIVRSubRoute EX3.search
 
 data MyRoute = MyRoute TIVRDB
 
@@ -29,6 +31,7 @@ data MyRoute = MyRoute TIVRDB
 mkRoute "MyRoute" [parseRoutes|
 /ex1 Example1 TIVRSubRoute example1Route
 /ex2 Example2 TIVRSubRoute example2Route
+/ex3 Example3 TIVRSubRoute example3Route
 |]
 
 
