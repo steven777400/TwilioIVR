@@ -8,7 +8,12 @@ Stability   : experimental
 
 Basic representation, including read and show, for digits (0-9), star, and pound.
 -}
-module Twilio.Key (Key(..)) where
+module Twilio.Key (Key(..), letterToKey, keyToLetter) where
+
+import Control.Applicative
+import Data.Char (toUpper)
+import Data.List
+import Text.Read (readMaybe)
 
 -- | A physical phone key which can be received from a gather
 data Key
@@ -61,3 +66,27 @@ instance Read Key where
     readsPrec _ "#"    = [(KPound, "")]
     readsPrec _ _      = []    
     readList kx        = [(readKeyList kx, [])]
+
+
+letterMapping = [
+    (K2, "ABC"),
+    (K3, "DEF"),
+    (K4, "GHI"),
+    (K5, "JKL"),
+    (K6, "MNO"),
+    (K7, "PQRS"),
+    (K8, "TUV"),
+    (K9, "WXYZ")]
+
+
+-- | Given a character, converts it to a key symbol.  Not case sensitive.
+letterToKey :: Char -> Maybe Key
+letterToKey c = case readMaybe [c] of
+    (Just k) -> Just k
+    _ -> fst <$> find (\(_, lx) -> elem (toUpper c) lx) letterMapping
+
+-- | Given a Key, returns all letter characters associated with it.
+keyToLetter :: Key -> [Char]
+keyToLetter k = case find (\(ke, _) -> k == ke) letterMapping of
+    (Just (_, lx)) -> lx
+    Nothing -> []
