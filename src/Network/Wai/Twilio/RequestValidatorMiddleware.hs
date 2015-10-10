@@ -35,19 +35,39 @@ postParams r = foldl (<>) "" stringified
     
 hmacsha1 = HMAC.hmac SHA1.hash 64    
 
+signature :: B.ByteString -> Builder -> B.ByteString
 signature authtoken contents = encode $ hmacsha1 authtoken rbs
     where rbs = BL.toStrict $ toLazyByteString contents
 
+calcSignature :: B.ByteString -> Request -> B.ByteString -> B.ByteString
+calcSignature authtoken r rb = let 
+    rootUrl = maybe "" id (getApprootMay r)
+    url' = url rootUrl r
+    requestbody' = case requestMethod r of
+            "POST" -> postParams rb
+            _ -> ""
+    in
+    signature authtoken (url' <> requestbody')
+
 
 verifySignature :: B.ByteString -> Request -> IO Bool
-verifySignature authtoken r = do
-    rb <- strictRequestBody r
-    let rootUrl = maybe "" id (getApprootMay r)
-    let url' = url rootUrl r
-    let requestbody' = case requestMethod r of
-            methodPost -> postParams (BL.toStrict rb)
-            _ -> ""
-    let proposedSignature = signature authtoken (url' <> requestbody')
-    return $ proposedSignature == "TODO"
+verifySignature authtoken r = 
+    case lookup "X-Twilio-Signature" $ requestHeaders r of
+        Nothing                 -> return False -- If signature missing from request, must not be valid
+        (Just givenSignature)   -> (givenSignature ==) <$> calcSignature authtoken r <$> BL.toStrict <$> strictRequestBody r
+
+
+-- ISSUES: 
+-- 1. strictRequestBody only works once.  Need to do something so down the line they can read again
+-- 2. + is not coming through.  Some kind of encoding?
+
+requestValidator :: B.ByteString -> Middleware
+requestValidator authtoken app req respond = do
+    test <- strictRequestBody req
+    vs <- verifySignature authtoken req
+    let test' = BL.toStrict test
+    case vs of
+        False -> respond $ responseLBS unauthorized401 [] $ toLazyByteString $ postParams test'
+        True -> app req respond
 
 
