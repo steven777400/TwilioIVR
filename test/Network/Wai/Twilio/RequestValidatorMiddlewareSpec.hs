@@ -38,12 +38,13 @@ spec = do
     describe "requestValidator" $ do        
         it "validates correct requests" $ do           
             (SResponse status _ msg) <- runSession (srequest req1) (requestValidator "12345" trivialApp)
-            print msg
+            msg `shouldBe` "Trivial App"
             status `shouldBe` ok200  
+        it "rejects incorrect requests" $ do           
+            (SResponse status _ msg) <- runSession (srequest req1) (requestValidator "1234" trivialApp)
+            msg `shouldBe` "Invalid X-Twilio-Signature"
+            status `shouldBe` unauthorized401
 
-
-
--- unauthorized401
 
 
 
