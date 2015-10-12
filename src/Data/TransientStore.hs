@@ -6,7 +6,10 @@ Copyright   : (c) 2015 Steve Kollmansberger
 Maintainer  : steve@kolls.net
 Stability   : experimental
 
-Primarily to support web service based coroutines, where a coroutine (which cannot be serialized)
+Primarily to support web service sessions, where a requestor may abruptly stop requesting
+without indication that a session is complete, leading to a memory leak.
+
+Originally built to support web coroutines, where a coroutine (which cannot be serialized)
 must be stored while a serializable identifier is sent to the client, which may or may not use it
 later to continue the coroutine.  Since some instances will not be resumed, a memory leak ensues
 unless old instances are cleared out, hence, the time limited factor.
