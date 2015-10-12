@@ -43,14 +43,18 @@ create ttl = do
     newIORef $ ITransientStore ttl now HM.empty           
     
 -- | Retrieve a value from the transient store without removing it.  Instead, most users will call 'pop' to retrieve and remove in one operation.
+--   Peek'ing a value also renews its timestamp, keeping it alive.
 peek :: TransientStore a            -- ^ The transient store to look in
     -> UUID                         -- ^ The key to look for (as returned by 'insert')
     -> IO (Maybe a)                 -- ^ The value, if it exists and is not expired, or Nothing otherwise
 peek tstore id = do        
     -- Check if cleanup is needed, and retrieve value
     now <- getCurrentTime    
-    atomicModifyIORef' tstore (\istore -> let cleanedIStore = cleanIfNeeded now istore in 
-        (cleanedIStore, snd <$> HM.lookup id (store cleanedIStore)))    
+    atomicModifyIORef' tstore (\istore -> let 
+            cleanedIStore = cleanIfNeeded now istore 
+            renewedIStore = cleanedIStore { store = HM.adjust (renew now) id (store cleanedIStore) }
+        in 
+        (renewedIStore, snd <$> HM.lookup id (store cleanedIStore)))   
 
 -- | Insert a new value into the store, returning a unique, serializable identifier    
 insert :: TransientStore a          -- ^ The transient store to insert into
@@ -74,7 +78,7 @@ delete tstore id = do
         (cleanedIStore { store = HM.delete id (store cleanedIStore) }, ()))
         
 -- | Retrieve a value from the transient store and remove it.
-pop :: TransientStore a            -- ^ The transient store to look in
+pop :: TransientStore a             -- ^ The transient store to look in
     -> UUID                         -- ^ The key to look for (as returned by 'insert')
     -> IO (Maybe a)                 -- ^ The value, if it exists and is not expired, or Nothing otherwise
 pop tstore id = do          
@@ -91,3 +95,6 @@ cleanIfNeeded now istore    | addUTCTime (ttl istore) (lastCleanup istore) < now
                                     lastCleanup = now,
                                     store = HM.filter (\(time, _) -> addUTCTime (ttl istore) time > now) (store istore) }
                             | otherwise = istore
+
+renew :: UTCTime -> (UTCTime, a) -> (UTCTime, a)
+renew now (time, value) = (now, value)

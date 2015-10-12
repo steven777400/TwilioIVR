@@ -58,17 +58,45 @@ spec = do
         it "should remove a value after a long time, but leave shorter values" $ do
             db <- create 1 :: IO (TransientStore String)
             key <- insert db "hello"
+            key3 <- insert db "xyzzy"
             threadDelay 500000
             result <- peek db key
             result `shouldBe` (Just "hello")            
             key2 <- insert db "different"
             threadDelay 900000
-            result' <- peek db key
-            result' `shouldBe` Nothing
+            result3 <- peek db key3
+            result3 `shouldBe` Nothing
             result2' <- peek db key2
             result2' `shouldBe` (Just "different")
-            threadDelay 1000000
+            threadDelay 2000000
             result' <- peek db key
             result' `shouldBe` Nothing
             result2' <- peek db key2
             result2' `shouldBe` Nothing
+        it "should keep peek'd values alive" $ do
+            db <- create 1 :: IO (TransientStore String)
+            key1 <- insert db "hello"
+            key2 <- insert db "there"
+            threadDelay 500000
+            result1 <- peek db key1
+            result1 `shouldBe` (Just "hello")
+            result2 <- peek db key2
+            result2 `shouldBe` (Just "there")
+            threadDelay 500000
+            result1 <- peek db key1
+            result1 `shouldBe` (Just "hello")
+            threadDelay 500000
+            result1 <- peek db key1
+            result1 `shouldBe` (Just "hello")
+            threadDelay 500000
+            result1 <- peek db key1
+            result1 `shouldBe` (Just "hello")
+            threadDelay 500000
+            result1 <- peek db key1
+            result1 `shouldBe` (Just "hello")
+            result2 <- peek db key2
+            result2 `shouldBe` Nothing
+
+
+
+
