@@ -21,6 +21,7 @@ import Data.ByteString.Builder
 import Data.ByteString.Base64
 import Data.List
 import Data.Monoid
+import Data.IORef
 
 import Network.HTTP.Types
 import Network.Wai
@@ -67,16 +68,40 @@ verifySignature authtoken body r =
         (Just givenSignature)   -> return $ (givenSignature ==) $ calcSignature authtoken r $ body
 
 
+readRequestBodyAndPushback :: Request -> IO (B.ByteString, IO B.ByteString)
+readRequestBodyAndPushback req = do
+    -- This loop body and then the ichunks rbody stuff comes from http://hackage.haskell.org/package/wai-extra-3.0.3.2/docs/src/Network-Wai-Middleware-RequestLogger.html
+    -- ** BEGIN READ BODY
+    let loop front = do
+            bs <- requestBody req
+            if BC.null bs
+                then return $ front []
+                else loop $ front . (bs:)
+    body <- loop id
+    -- ** END READ BODY
+    
+    -- ** BEGIN BODY PUSHBACK
+    ichunks <- newIORef body
+    let rbody = atomicModifyIORef ichunks $ \chunks -> case chunks of
+            [] -> ([], BC.empty)
+            x:y -> (y, x)
+    -- ** END BODY PUSHBACK
+
+    return (B.concat body, rbody)
+
+
+
 -- | Middleware to validate Twilio request.  Parameterized by API auth token.
 --   Returns 401 Unauthorized if the request does not contain a valid signature based on the given auth token.
 requestValidator :: 
     B.ByteString    -- ^ AuthToken from your Twilio page
     -> Middleware
-requestValidator authtoken app req respond = do    
-    body <- BL.toStrict <$> strictRequestBody req
-    vs <- verifySignature authtoken body req
+requestValidator authtoken app req respond = do
+    -- strictRequestBody appears to work only once, so we re-insert result into request when validated.
+    (body, rbody) <- readRequestBodyAndPushback req
+    vs <- verifySignature authtoken body req    
     case vs of
         False -> respond $ responseLBS unauthorized401 [] "Invalid X-Twilio-Signature"
-        True -> app req respond
+        True -> app (req {requestBody = rbody}) respond
 
 
