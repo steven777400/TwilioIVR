@@ -49,4 +49,5 @@ dev = do
     prepareApp >>= Warp.run 8080 
     
 main :: IO ()
-main = hardcoded "/test/ivr-examples.fcgi" <$> prepareApp >>= FCGI.run   
+main = hardcoded "/test/ivr-examples.fcgi" {-- <$> requestValidator "..." --} <$> prepareApp >>= FCGI.run   
+

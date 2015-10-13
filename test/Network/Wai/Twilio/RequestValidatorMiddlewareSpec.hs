@@ -30,7 +30,7 @@ req1 = SRequest defaultRequest
     , isSecure = True
     , requestHeaderHost = Just "mycompany.com"
     , requestHeaders = [("X-Twilio-Signature", "RSOYDt4T1cUTdK1PDd93/VVr8B8=")]
-    } "Digits=1234&To=+18005551212&From=+14158675309&Caller=+14158675309&CallSid=CA1234567890ABCDE"
+    } "Digits=1234&To=%2B18005551212&From=%2B14158675309&Caller=%2B14158675309&CallSid=CA1234567890ABCDE"
 
 
 spec :: Spec

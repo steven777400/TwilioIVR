@@ -35,18 +35,12 @@ url approot r = "http" <>
     (byteString $ rawPathInfo r) <>
     (byteString $ rawQueryString r)
 
-replace from to str = B.intercalate to (B.split from str)
-
-replacePlus = replace (B.head $ BC.singleton ' ') "+"
-
 -- load request bytestring using Wai  strictRequestBody   
 postParams :: B.ByteString -> Builder
 postParams r = foldl (<>) "" stringified
     where 
         ordered = sortBy (\a b -> compare (fst a) (fst b)) (parseQuery r)
-        -- about the replace " " with "+"... parseQuery is defined with a call to urldecode (ok)
-        -- which is called with a flag to replace + with space.  Rage.
-        stringified = map (\(k, mv) -> byteString k <> (byteString $ maybe "" replacePlus mv)) ordered
+        stringified = map (\(k, mv) -> byteString k <> (byteString $ maybe "" id mv)) ordered
    
     
 hmacsha1 = HMAC.hmac SHA1.hash 64    
@@ -78,12 +72,11 @@ verifySignature authtoken body r =
 requestValidator :: 
     B.ByteString    -- ^ AuthToken from your Twilio page
     -> Middleware
-requestValidator authtoken app req respond = do
-    -- strictRequestBody appears to work only once, so we re-insert result into request when validated.
+requestValidator authtoken app req respond = do    
     body <- BL.toStrict <$> strictRequestBody req
     vs <- verifySignature authtoken body req
     case vs of
         False -> respond $ responseLBS unauthorized401 [] "Invalid X-Twilio-Signature"
-        True -> app (req {requestBody = return body}) respond
+        True -> app req respond
 
 
